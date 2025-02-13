@@ -309,7 +309,7 @@ export class InteractionClient {
                     })),
                 },
                 createdAt: new Date(message.timestamp).getTime(),
-                embedding: getEmbeddingZeroVector(),
+                embedding: getEmbeddingZeroVector(this.runtime),
             };
 
             // Check if we've already processed this message
@@ -404,7 +404,7 @@ export class InteractionClient {
                         })),
                     },
                     createdAt: new Date(sentMessage.timestamp).getTime(),
-                    embedding: getEmbeddingZeroVector(),
+                    embedding: getEmbeddingZeroVector(this.runtime),
                 };
 
                 await this.runtime.messageManager.createMemory(responseMemory);

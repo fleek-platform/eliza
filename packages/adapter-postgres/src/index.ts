@@ -7,13 +7,14 @@ type Pool = pg.Pool;
 import {
     Account,
     Actor,
+    Character,
     DatabaseAdapter,
     EmbeddingProvider,
     GoalStatus,
     Participant,
     RAGKnowledgeItem,
     elizaLogger,
-    getEmbeddingConfig,
+    getEmbeddingConfigFromCharacterConfig,
     type Goal,
     type IDatabaseCacheAdapter,
     type Memory,
@@ -38,13 +39,14 @@ export class PostgresDatabaseAdapter
     implements IDatabaseCacheAdapter
 {
     private pool: Pool;
+    private characterConfig: Character;
     private readonly maxRetries: number = 3;
     private readonly baseDelay: number = 1000; // 1 second
     private readonly maxDelay: number = 10000; // 10 seconds
     private readonly jitterMax: number = 1000; // 1 second
     private readonly connectionTimeout: number = 5000; // 5 seconds
 
-    constructor(connectionConfig: any) {
+    constructor(connectionConfig: any, characterConfig: Character) {
         super({
             //circuitbreaker stuff
             failureThreshold: 5,
@@ -70,6 +72,7 @@ export class PostgresDatabaseAdapter
 
         this.setupPoolErrorHandling();
         this.testConnection();
+        this.characterConfig = characterConfig;
     }
 
     private setupPoolErrorHandling() {
@@ -213,7 +216,9 @@ export class PostgresDatabaseAdapter
             await client.query("BEGIN");
 
             // Set application settings for embedding dimension
-            const embeddingConfig = getEmbeddingConfig();
+            const embeddingConfig = getEmbeddingConfigFromCharacterConfig(
+                this.characterConfig
+            );
             if (embeddingConfig.provider === EmbeddingProvider.OpenAI) {
                 await client.query("SET app.use_openai_embedding = 'true'");
                 await client.query("SET app.use_ollama_embedding = 'false'");
@@ -1139,9 +1144,13 @@ export class PostgresDatabaseAdapter
             });
 
             // Validate embedding dimension
-            if (embedding.length !== getEmbeddingConfig().dimensions) {
+            if (
+                embedding.length !==
+                getEmbeddingConfigFromCharacterConfig(this.characterConfig)
+                    .dimensions
+            ) {
                 throw new Error(
-                    `Invalid embedding dimension: expected ${getEmbeddingConfig().dimensions}, got ${embedding.length}`
+                    `Invalid embedding dimension: expected ${getEmbeddingConfigFromCharacterConfig(this.characterConfig).dimensions}, got ${embedding.length}`
                 );
             }
 
@@ -1163,7 +1172,7 @@ export class PostgresDatabaseAdapter
 
             let sql = `
                 SELECT *,
-                1 - (embedding <-> $1::vector(${getEmbeddingConfig().dimensions})) as similarity
+                1 - (embedding <-> $1::vector(${getEmbeddingConfigFromCharacterConfig(this.characterConfig).dimensions})) as similarity
                 FROM memories
                 WHERE type = $2
             `;

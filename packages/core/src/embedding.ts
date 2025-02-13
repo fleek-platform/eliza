@@ -1,8 +1,13 @@
-import { getEmbeddingModelSettings, getEndpoint } from "./models.ts";
-import { IAgentRuntime, ModelProviderName } from "./types.ts";
+import {
+    getEmbeddingModelSettings,
+    getEmbeddingModelSettingsFromCharacterConfig,
+    getEndpoint,
+} from "./models.ts";
+import { Character, IAgentRuntime, ModelProviderName } from "./types.ts";
 import settings from "./settings.ts";
 import elizaLogger from "./logger.ts";
 import LocalEmbeddingModelManager from "./localembeddingManager.ts";
+import { getSettingFromCharacterConfig } from "./index.ts";
 
 interface EmbeddingOptions {
     model: string;
@@ -31,44 +36,175 @@ export type EmbeddingConfig = {
     readonly provider: EmbeddingProviderType;
 };
 
-export const getEmbeddingConfig = (): EmbeddingConfig => ({
+export const getEmbeddingConfig = (
+    runtime: IAgentRuntime
+): EmbeddingConfig => ({
     dimensions:
-        settings.USE_OPENAI_EMBEDDING?.toLowerCase() === "true"
-            ? getEmbeddingModelSettings(ModelProviderName.OPENAI).dimensions
-            : settings.USE_OLLAMA_EMBEDDING?.toLowerCase() === "true"
-              ? getEmbeddingModelSettings(ModelProviderName.OLLAMA).dimensions
-              : settings.USE_GAIANET_EMBEDDING?.toLowerCase() === "true"
-                ? getEmbeddingModelSettings(ModelProviderName.GAIANET)
+        settings.USE_OPENAI_EMBEDDING?.toLowerCase() === "true" ||
+        runtime.getSetting("USE_OPENAI_EMBEDDING") === "true"
+            ? getEmbeddingModelSettings(runtime, ModelProviderName.OPENAI)
+                  .dimensions
+            : settings.USE_OLLAMA_EMBEDDING?.toLowerCase() === "true" ||
+                runtime.getSetting("USE_OLLAMA_EMBEDDING") === "true"
+              ? getEmbeddingModelSettings(runtime, ModelProviderName.OLLAMA)
+                    .dimensions
+              : settings.USE_GAIANET_EMBEDDING?.toLowerCase() === "true" ||
+                  runtime.getSetting("USE_GAIANET_EMBEDDING") === "true"
+                ? getEmbeddingModelSettings(runtime, ModelProviderName.GAIANET)
                       .dimensions
-                : settings.USE_HEURIST_EMBEDDING?.toLowerCase() === "true"
-                  ? getEmbeddingModelSettings(ModelProviderName.HEURIST)
-                        .dimensions
+                : settings.USE_HEURIST_EMBEDDING?.toLowerCase() === "true" ||
+                    runtime.getSetting("USE_HEURIST_EMBEDDING") === "true"
+                  ? getEmbeddingModelSettings(
+                        runtime,
+                        ModelProviderName.HEURIST
+                    ).dimensions
                   : 384, // BGE
     model:
-        settings.USE_OPENAI_EMBEDDING?.toLowerCase() === "true"
-            ? getEmbeddingModelSettings(ModelProviderName.OPENAI).name
-            : settings.USE_OLLAMA_EMBEDDING?.toLowerCase() === "true"
-              ? getEmbeddingModelSettings(ModelProviderName.OLLAMA).name
-              : settings.USE_GAIANET_EMBEDDING?.toLowerCase() === "true"
-                ? getEmbeddingModelSettings(ModelProviderName.GAIANET).name
-                : settings.USE_HEURIST_EMBEDDING?.toLowerCase() === "true"
-                  ? getEmbeddingModelSettings(ModelProviderName.HEURIST).name
+        settings.USE_OPENAI_EMBEDDING?.toLowerCase() === "true" ||
+        runtime.getSetting("USE_OPENAI_EMBEDDING") === "true"
+            ? getEmbeddingModelSettings(runtime, ModelProviderName.OPENAI).name
+            : settings.USE_OLLAMA_EMBEDDING?.toLowerCase() === "true" ||
+                runtime.getSetting("USE_OLLAMA_EMBEDDING") === "true"
+              ? getEmbeddingModelSettings(runtime, ModelProviderName.OLLAMA)
+                    .name
+              : settings.USE_GAIANET_EMBEDDING?.toLowerCase() === "true" ||
+                  runtime.getSetting("USE_GAIANET_EMBEDDING") === "true"
+                ? getEmbeddingModelSettings(runtime, ModelProviderName.GAIANET)
+                      .name
+                : settings.USE_HEURIST_EMBEDDING?.toLowerCase() === "true" ||
+                    runtime.getSetting("USE_HEURIST_EMBEDDING") === "true"
+                  ? getEmbeddingModelSettings(
+                        runtime,
+                        ModelProviderName.HEURIST
+                    ).name
                   : "BGE-small-en-v1.5",
     provider:
-        settings.USE_OPENAI_EMBEDDING?.toLowerCase() === "true"
+        settings.USE_OPENAI_EMBEDDING?.toLowerCase() === "true" ||
+        runtime.getSetting("USE_OPENAI_EMBEDDING") === "true"
             ? "OpenAI"
-            : settings.USE_OLLAMA_EMBEDDING?.toLowerCase() === "true"
+            : settings.USE_OLLAMA_EMBEDDING?.toLowerCase() === "true" ||
+                runtime.getSetting("USE_OLLAMA_EMBEDDING") === "true"
               ? "Ollama"
-              : settings.USE_GAIANET_EMBEDDING?.toLowerCase() === "true"
+              : settings.USE_GAIANET_EMBEDDING?.toLowerCase() === "true" ||
+                  runtime.getSetting("USE_GAIANET_EMBEDDING") === "true"
                 ? "GaiaNet"
-                : settings.USE_HEURIST_EMBEDDING?.toLowerCase() === "true"
+                : settings.USE_HEURIST_EMBEDDING?.toLowerCase() === "true" ||
+                    runtime.getSetting("USE_HEURIST_EMBEDDING") === "true"
+                  ? "Heurist"
+                  : "BGE",
+});
+
+export const getEmbeddingConfigFromCharacterConfig = (
+    characterConfig: Character
+): EmbeddingConfig => ({
+    dimensions:
+        settings.USE_OPENAI_EMBEDDING?.toLowerCase() === "true" ||
+        getSettingFromCharacterConfig(
+            "USE_OPENAI_EMBEDDING",
+            characterConfig
+        ) === "true"
+            ? getEmbeddingModelSettingsFromCharacterConfig(
+                  characterConfig,
+                  ModelProviderName.OPENAI
+              ).dimensions
+            : settings.USE_OLLAMA_EMBEDDING?.toLowerCase() === "true" ||
+                getSettingFromCharacterConfig(
+                    "USE_OLLAMA_EMBEDDING",
+                    characterConfig
+                ) === "true"
+              ? getEmbeddingModelSettingsFromCharacterConfig(
+                    characterConfig,
+                    ModelProviderName.OLLAMA
+                ).dimensions
+              : settings.USE_GAIANET_EMBEDDING?.toLowerCase() === "true" ||
+                  getSettingFromCharacterConfig(
+                      "USE_GAIANET_EMBEDDING",
+                      characterConfig
+                  ) === "true"
+                ? getEmbeddingModelSettingsFromCharacterConfig(
+                      characterConfig,
+                      ModelProviderName.GAIANET
+                  ).dimensions
+                : settings.USE_HEURIST_EMBEDDING?.toLowerCase() === "true" ||
+                    getSettingFromCharacterConfig(
+                        "USE_HEURIST_EMBEDDING",
+                        characterConfig
+                    ) === "true"
+                  ? getEmbeddingModelSettingsFromCharacterConfig(
+                        characterConfig,
+                        ModelProviderName.HEURIST
+                    ).dimensions
+                  : 384, // BGE
+    model:
+        settings.USE_OPENAI_EMBEDDING?.toLowerCase() === "true" ||
+        getSettingFromCharacterConfig(
+            "USE_OPENAI_EMBEDDING",
+            characterConfig
+        ) === "true"
+            ? getEmbeddingModelSettingsFromCharacterConfig(
+                  characterConfig,
+                  ModelProviderName.OPENAI
+              ).name
+            : settings.USE_OLLAMA_EMBEDDING?.toLowerCase() === "true" ||
+                getSettingFromCharacterConfig(
+                    "USE_OLLAMA_EMBEDDING",
+                    characterConfig
+                ) === "true"
+              ? getEmbeddingModelSettingsFromCharacterConfig(
+                    characterConfig,
+                    ModelProviderName.OLLAMA
+                ).name
+              : settings.USE_GAIANET_EMBEDDING?.toLowerCase() === "true" ||
+                  getSettingFromCharacterConfig(
+                      "USE_GAIANET_EMBEDDING",
+                      characterConfig
+                  ) === "true"
+                ? getEmbeddingModelSettingsFromCharacterConfig(
+                      characterConfig,
+                      ModelProviderName.GAIANET
+                  ).name
+                : settings.USE_HEURIST_EMBEDDING?.toLowerCase() === "true" ||
+                    getSettingFromCharacterConfig(
+                        "USE_HEURIST_EMBEDDING",
+                        characterConfig
+                    ) === "true"
+                  ? getEmbeddingModelSettingsFromCharacterConfig(
+                        characterConfig,
+                        ModelProviderName.HEURIST
+                    ).name
+                  : "BGE-small-en-v1.5",
+    provider:
+        settings.USE_OPENAI_EMBEDDING?.toLowerCase() === "true" ||
+        getSettingFromCharacterConfig(
+            "USE_OPENAI_EMBEDDING",
+            characterConfig
+        ) === "true"
+            ? "OpenAI"
+            : settings.USE_OLLAMA_EMBEDDING?.toLowerCase() === "true" ||
+                getSettingFromCharacterConfig(
+                    "USE_OLLAMA_EMBEDDING",
+                    characterConfig
+                ) === "true"
+              ? "Ollama"
+              : settings.USE_GAIANET_EMBEDDING?.toLowerCase() === "true" ||
+                  getSettingFromCharacterConfig(
+                      "USE_GAIANET_EMBEDDING",
+                      characterConfig
+                  ) === "true"
+                ? "GaiaNet"
+                : settings.USE_HEURIST_EMBEDDING?.toLowerCase() === "true" ||
+                    getSettingFromCharacterConfig(
+                        "USE_HEURIST_EMBEDDING",
+                        characterConfig
+                    ) === "true"
                   ? "Heurist"
                   : "BGE",
 });
 
 async function getRemoteEmbedding(
     input: string,
-    options: EmbeddingOptions
+    options: EmbeddingOptions,
+    runtime: IAgentRuntime
 ): Promise<number[]> {
     // Ensure endpoint ends with /v1 for OpenAI
     const baseEndpoint = options.endpoint.endsWith("/v1")
@@ -94,7 +230,7 @@ async function getRemoteEmbedding(
             dimensions:
                 options.dimensions ||
                 options.length ||
-                getEmbeddingConfig().dimensions, // Prefer dimensions, fallback to length
+                getEmbeddingConfig(runtime).dimensions, // Prefer dimensions, fallback to length
         }),
     };
 
@@ -135,28 +271,33 @@ export function getEmbeddingType(runtime: IAgentRuntime): "local" | "remote" {
         runtime.character.modelProvider !== ModelProviderName.OPENAI &&
         runtime.character.modelProvider !== ModelProviderName.GAIANET &&
         runtime.character.modelProvider !== ModelProviderName.HEURIST &&
-        !settings.USE_OPENAI_EMBEDDING;
+        (!settings.USE_OPENAI_EMBEDDING ||
+            runtime.getSetting("USE_OPENAI_EMBEDDING") !== "true");
 
     return isLocal ? "local" : "remote";
 }
 
-export function getEmbeddingZeroVector(): number[] {
+export function getEmbeddingZeroVector(runtime: IAgentRuntime): number[] {
     let embeddingDimension = 384; // Default BGE dimension
 
     if (settings.USE_OPENAI_EMBEDDING?.toLowerCase() === "true") {
         embeddingDimension = getEmbeddingModelSettings(
+            runtime,
             ModelProviderName.OPENAI
         ).dimensions; // OpenAI dimension
     } else if (settings.USE_OLLAMA_EMBEDDING?.toLowerCase() === "true") {
         embeddingDimension = getEmbeddingModelSettings(
+            runtime,
             ModelProviderName.OLLAMA
         ).dimensions; // Ollama mxbai-embed-large dimension
     } else if (settings.USE_GAIANET_EMBEDDING?.toLowerCase() === "true") {
         embeddingDimension = getEmbeddingModelSettings(
+            runtime,
             ModelProviderName.GAIANET
         ).dimensions; // GaiaNet dimension
     } else if (settings.USE_HEURIST_EMBEDDING?.toLowerCase() === "true") {
         embeddingDimension = getEmbeddingModelSettings(
+            runtime,
             ModelProviderName.HEURIST
         ).dimensions; // Heurist dimension
     }
@@ -182,7 +323,7 @@ export function getEmbeddingZeroVector(): number[] {
 export async function embed(runtime: IAgentRuntime, input: string) {
     elizaLogger.debug("Embedding request:", {
         modelProvider: runtime.character.modelProvider,
-        useOpenAI: process.env.USE_OPENAI_EMBEDDING,
+        useOpenAI: runtime.getSetting("USE_OPENAI_EMBEDDING"),
         input: input?.slice(0, 50) + "...",
         inputType: typeof input,
         inputLength: input?.length,
@@ -204,51 +345,82 @@ export async function embed(runtime: IAgentRuntime, input: string) {
     const cachedEmbedding = await retrieveCachedEmbedding(runtime, input);
     if (cachedEmbedding) return cachedEmbedding;
 
-    const config = getEmbeddingConfig();
+    const config = getEmbeddingConfig(runtime);
     const isNode = typeof process !== "undefined" && process.versions?.node;
 
     // Determine which embedding path to use
     if (config.provider === EmbeddingProvider.OpenAI) {
-        return await getRemoteEmbedding(input, {
-            model: config.model,
-            endpoint: settings.OPENAI_API_URL || "https://api.openai.com/v1",
-            apiKey: settings.OPENAI_API_KEY,
-            dimensions: config.dimensions,
-        });
+        return await getRemoteEmbedding(
+            input,
+            {
+                model: config.model,
+                endpoint:
+                    settings.OPENAI_API_URL ||
+                    runtime.getSetting("OPENAI_API_URL") ||
+                    "https://api.openai.com/v1",
+                apiKey:
+                    settings.OPENAI_API_KEY ||
+                    runtime.getSetting("OPENAI_API_KEY") ||
+                    runtime.token,
+                dimensions: config.dimensions,
+            },
+            runtime
+        );
     }
 
     if (config.provider === EmbeddingProvider.Ollama) {
-        return await getRemoteEmbedding(input, {
-            model: config.model,
-            endpoint:
-                runtime.character.modelEndpointOverride ||
-                getEndpoint(ModelProviderName.OLLAMA),
-            isOllama: true,
-            dimensions: config.dimensions,
-        });
+        return await getRemoteEmbedding(
+            input,
+            {
+                model: config.model,
+                endpoint:
+                    runtime.character.modelEndpointOverride ||
+                    getEndpoint(runtime, ModelProviderName.OLLAMA),
+                isOllama: true,
+                dimensions: config.dimensions,
+            },
+            runtime
+        );
     }
 
     if (config.provider == EmbeddingProvider.GaiaNet) {
-        return await getRemoteEmbedding(input, {
-            model: config.model,
-            endpoint:
-                runtime.character.modelEndpointOverride ||
-                getEndpoint(ModelProviderName.GAIANET) ||
-                settings.SMALL_GAIANET_SERVER_URL ||
-                settings.MEDIUM_GAIANET_SERVER_URL ||
-                settings.LARGE_GAIANET_SERVER_URL,
-            apiKey: settings.GAIANET_API_KEY || runtime.token,
-            dimensions: config.dimensions,
-        });
+        return await getRemoteEmbedding(
+            input,
+            {
+                model: config.model,
+                endpoint:
+                    runtime.character.modelEndpointOverride ||
+                    getEndpoint(runtime, ModelProviderName.GAIANET) ||
+                    settings.SMALL_GAIANET_SERVER_URL ||
+                    settings.MEDIUM_GAIANET_SERVER_URL ||
+                    settings.LARGE_GAIANET_SERVER_URL ||
+                    runtime.getSetting("SMALL_GAIANET_SERVER_URL") ||
+                    runtime.getSetting("MEDIUM_GAIANET_SERVER_URL") ||
+                    runtime.getSetting("LARGE_GAIANET_SERVER_URL"),
+                apiKey:
+                    settings.GAIANET_API_KEY ||
+                    runtime.getSetting("GAIANET_API_KEY") ||
+                    runtime.token,
+                dimensions: config.dimensions,
+            },
+            runtime
+        );
     }
 
     if (config.provider === EmbeddingProvider.Heurist) {
-        return await getRemoteEmbedding(input, {
-            model: config.model,
-            endpoint: getEndpoint(ModelProviderName.HEURIST),
-            apiKey: runtime.token,
-            dimensions: config.dimensions,
-        });
+        return await getRemoteEmbedding(
+            input,
+            {
+                model: config.model,
+                endpoint: getEndpoint(runtime, ModelProviderName.HEURIST),
+                apiKey:
+                    settings.HEURIST_API_KEY ||
+                    runtime.getSetting("HEURIST_API_KEY") ||
+                    runtime.token,
+                dimensions: config.dimensions,
+            },
+            runtime
+        );
     }
 
     // BGE - try local first if in Node
@@ -264,14 +436,18 @@ export async function embed(runtime: IAgentRuntime, input: string) {
     }
 
     // Fallback to remote override
-    return await getRemoteEmbedding(input, {
-        model: config.model,
-        endpoint:
-            runtime.character.modelEndpointOverride ||
-            getEndpoint(runtime.character.modelProvider),
-        apiKey: runtime.token,
-        dimensions: config.dimensions,
-    });
+    return await getRemoteEmbedding(
+        input,
+        {
+            model: config.model,
+            endpoint:
+                runtime.character.modelEndpointOverride ||
+                getEndpoint(runtime, runtime.character.modelProvider),
+            apiKey: runtime.token,
+            dimensions: config.dimensions,
+        },
+        runtime
+    );
 
     async function getLocalEmbedding(input: string): Promise<number[]> {
         elizaLogger.debug("DEBUG - Inside getLocalEmbedding function");

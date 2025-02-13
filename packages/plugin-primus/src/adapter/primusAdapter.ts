@@ -5,10 +5,13 @@ import {
     VerifiableInferenceResult,
     VerifiableInferenceProvider,
     ModelProviderName,
-    models,
     elizaLogger,
+    getEndpointFromCharacterConfig,
+    Character,
+    getModelSettingsFromCharacterConfig,
 } from "@elizaos/core";
-import {generateProof, verifyProof} from "../util/primusUtil.ts";
+import { generateProof, verifyProof } from "../util/primusUtil.ts";
+import { ModelClass } from "@elizaos/core";
 
 interface PrimusOptions {
     appId: string;
@@ -20,9 +23,10 @@ interface PrimusOptions {
 
 export class PrimusAdapter implements IVerifiableInferenceAdapter {
     public options: PrimusOptions;
-
-    constructor(options: PrimusOptions) {
+    public characterConfig: Character;
+    constructor(options: PrimusOptions, characterConfig: Character) {
         this.options = options;
+        this.characterConfig = characterConfig;
     }
 
     async generateText(
@@ -31,8 +35,14 @@ export class PrimusAdapter implements IVerifiableInferenceAdapter {
         options?: VerifiableInferenceOptions
     ): Promise<VerifiableInferenceResult> {
         const provider = this.options.modelProvider || ModelProviderName.OPENAI;
-        const baseEndpoint = options?.endpoint || models[provider].endpoint;
-        const model = models[provider].model[modelClass];
+        const baseEndpoint =
+            options?.endpoint ||
+            getEndpointFromCharacterConfig(this.characterConfig, provider);
+        const model = getModelSettingsFromCharacterConfig(
+            this.characterConfig,
+            provider,
+            modelClass as ModelClass
+        );
         const apiKey = this.options.token;
 
         if (!apiKey) {
@@ -56,10 +66,9 @@ export class PrimusAdapter implements IVerifiableInferenceAdapter {
                 throw new Error(`Unsupported model provider: ${provider}`);
         }
 
-
         const headers = {
             "Content-Type": "application/json",
-            "Authorization": authHeader,
+            Authorization: authHeader,
         };
 
         try {
@@ -68,9 +77,19 @@ export class PrimusAdapter implements IVerifiableInferenceAdapter {
                 messages: [{ role: "user", content: context }],
                 temperature:
                     options?.providerOptions?.temperature ||
-                    models[provider].model[modelClass].temperature,
+                    getModelSettingsFromCharacterConfig(
+                        this.characterConfig,
+                        provider,
+                        modelClass as ModelClass
+                    ).temperature,
             };
-            const attestation = await generateProof(endpoint,"POST",headers,JSON.stringify(body),responseParsePath);
+            const attestation = await generateProof(
+                endpoint,
+                "POST",
+                headers,
+                JSON.stringify(body),
+                responseParsePath
+            );
             elizaLogger.log(`model attestation:`, attestation);
 
             const responseData = JSON.parse(attestation.data);
@@ -88,7 +107,7 @@ export class PrimusAdapter implements IVerifiableInferenceAdapter {
     }
 
     async verifyProof(result: VerifiableInferenceResult): Promise<boolean> {
-        const isValid = verifyProof(result.proof)
+        const isValid = verifyProof(result.proof);
         elizaLogger.log("Proof is valid:", isValid);
         return isValid;
     }

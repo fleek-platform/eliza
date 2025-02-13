@@ -1,10 +1,10 @@
 import {
     elizaLogger,
     getEndpoint,
+    getModel,
     IAgentRuntime,
     IImageDescriptionService,
     ModelProviderName,
-    models,
     Service,
     ServiceType,
 } from "@elizaos/core";
@@ -164,7 +164,10 @@ class OpenAIImageProvider implements ImageProvider {
 
         const endpoint =
             this.runtime.imageVisionModelProvider === ModelProviderName.OPENAI
-                ? getEndpoint(this.runtime.imageVisionModelProvider)
+                ? getEndpoint(
+                      this.runtime,
+                      this.runtime.imageVisionModelProvider
+                  )
                 : "https://api.openai.com/v1";
 
         const response = await fetch(endpoint + "/chat/completions", {
@@ -198,7 +201,7 @@ class GoogleImageProvider implements ImageProvider {
         imageData: Buffer,
         mimeType: string
     ): Promise<{ title: string; description: string }> {
-        const endpoint = getEndpoint(ModelProviderName.GOOGLE);
+        const endpoint = getEndpoint(this.runtime, ModelProviderName.GOOGLE);
         const apiKey = this.runtime.getSetting("GOOGLE_GENERATIVE_AI_API_KEY");
 
         const response = await fetch(
@@ -259,7 +262,10 @@ export class ImageDescriptionService
             throw new Error("Runtime is required for image recognition");
         }
 
-        const model = models[this.runtime?.character?.modelProvider];
+        const model = getModel(
+            this.runtime,
+            this.runtime?.character?.modelProvider
+        );
 
         if (this.runtime.imageVisionModelProvider) {
             if (
@@ -285,10 +291,12 @@ export class ImageDescriptionService
                     `Unsupported image vision model provider: ${this.runtime.imageVisionModelProvider}`
                 );
             }
-        } else if (model === models[ModelProviderName.LLAMALOCAL]) {
+        } else if (
+            model === getModel(this.runtime, ModelProviderName.LLAMALOCAL)
+        ) {
             this.provider = new LocalImageProvider();
             elizaLogger.debug("Using llama local for vision model");
-        } else if (model === models[ModelProviderName.GOOGLE]) {
+        } else if (model === getModel(this.runtime, ModelProviderName.GOOGLE)) {
             this.provider = new GoogleImageProvider(this.runtime);
             elizaLogger.debug("Using google for vision model");
         } else {

@@ -49,7 +49,10 @@ export class MemoryManager implements IMemoryManager {
      * @returns The memory object with an embedding vector added
      * @throws Error if the memory content is empty
      */
-    async addEmbeddingToMemory(memory: Memory): Promise<Memory> {
+    async addEmbeddingToMemory(
+        memory: Memory,
+        runtime: IAgentRuntime
+    ): Promise<Memory> {
         // Return early if embedding already exists
         if (memory.embedding) {
             return memory;
@@ -70,7 +73,7 @@ export class MemoryManager implements IMemoryManager {
         } catch (error) {
             elizaLogger.error("Failed to generate embedding:", error);
             // Fallback to zero vector if embedding fails
-            memory.embedding = getEmbeddingZeroVector().slice();
+            memory.embedding = getEmbeddingZeroVector(runtime).slice();
         }
 
         return memory;
@@ -189,12 +192,15 @@ export class MemoryManager implements IMemoryManager {
         );
     }
 
-    async getMemoriesByRoomIds(params: { roomIds: UUID[], limit?: number; }): Promise<Memory[]> {
+    async getMemoriesByRoomIds(params: {
+        roomIds: UUID[];
+        limit?: number;
+    }): Promise<Memory[]> {
         return await this.runtime.databaseAdapter.getMemoriesByRoomIds({
             tableName: this.tableName,
             agentId: this.runtime.agentId,
             roomIds: params.roomIds,
-            limit: params.limit
+            limit: params.limit,
         });
     }
 

@@ -11,10 +11,11 @@ import {
     type IDatabaseCacheAdapter,
     Participant,
     elizaLogger,
-    getEmbeddingConfig,
     DatabaseAdapter,
     EmbeddingProvider,
     RAGKnowledgeItem,
+    getEmbeddingConfigFromCharacterConfig,
+    Character,
 } from "@elizaos/core";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -35,7 +36,9 @@ export class PGLiteDatabaseAdapter
     extends DatabaseAdapter<PGlite>
     implements IDatabaseCacheAdapter
 {
-    constructor(options: PGliteOptions) {
+    private characterConfig: Character;
+
+    constructor(options: PGliteOptions, characterConfig: Character) {
         super();
         this.db = new PGlite({
             ...options,
@@ -46,6 +49,7 @@ export class PGLiteDatabaseAdapter
                 fuzzystrmatch,
             },
         });
+        this.characterConfig = characterConfig;
     }
 
     async init() {
@@ -53,7 +57,9 @@ export class PGLiteDatabaseAdapter
 
         await this.withTransaction(async (tx) => {
             // Set application settings for embedding dimension
-            const embeddingConfig = getEmbeddingConfig();
+            const embeddingConfig = getEmbeddingConfigFromCharacterConfig(
+                this.characterConfig
+            );
             if (embeddingConfig.provider === EmbeddingProvider.OpenAI) {
                 await tx.query("SET app.use_openai_embedding = 'true'");
                 await tx.query("SET app.use_ollama_embedding = 'false'");
@@ -946,9 +952,13 @@ export class PGLiteDatabaseAdapter
             });
 
             // Validate embedding dimension
-            if (embedding.length !== getEmbeddingConfig().dimensions) {
+            if (
+                embedding.length !==
+                getEmbeddingConfigFromCharacterConfig(this.characterConfig)
+                    .dimensions
+            ) {
                 throw new Error(
-                    `Invalid embedding dimension: expected ${getEmbeddingConfig().dimensions}, got ${embedding.length}`
+                    `Invalid embedding dimension: expected ${getEmbeddingConfigFromCharacterConfig(this.characterConfig).dimensions}, got ${embedding.length}`
                 );
             }
 
@@ -970,7 +980,7 @@ export class PGLiteDatabaseAdapter
 
             let sql = `
                 SELECT *,
-                1 - (embedding <-> $1::vector(${getEmbeddingConfig().dimensions})) as similarity
+                1 - (embedding <-> $1::vector(${getEmbeddingConfigFromCharacterConfig(this.characterConfig).dimensions})) as similarity
                 FROM memories
                 WHERE type = $2
             `;
