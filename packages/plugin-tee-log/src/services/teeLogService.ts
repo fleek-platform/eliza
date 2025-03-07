@@ -12,7 +12,7 @@ export class TeeLogService extends Service implements ITeeLogService {
     private initialized = false;
     private enableTeeLog = false;
     private teeType: TeeType;
-    private teeMode: typeof TEEMode = TEEMode.OFF; // Only used for plugin-tee with TDX dstack
+    private teeMode: TEEMode = TEEMode.OFF; // Only used for plugin-tee with TDX dstack
 
     private teeLogDAO: TeeLogDAO;
     private teeLogManager: TeeLogManager;
