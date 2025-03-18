@@ -1,8 +1,0 @@
-.env
-node_modules
-.vscode
-
-db.sqlite
-.idea
-.tee-cloud
-.turbo

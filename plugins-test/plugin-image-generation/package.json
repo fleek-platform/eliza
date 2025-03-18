@@ -1,0 +1,67 @@
+{
+    "name": "@elizaos-plugins/plugin-image-generation",
+    "version": "0.1.9",
+    "type": "module",
+    "main": "dist/index.js",
+    "module": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        "./package.json": "./package.json",
+        ".": {
+            "import": {
+                "@elizaos/source": "./src/index.ts",
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.js"
+            }
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "dependencies": {
+        "@elizaos/core": "0.25.9",
+        "tsup": "8.3.5"
+    },
+    "scripts": {
+        "build": "tsup --format esm --dts",
+        "dev": "tsup --format esm --dts --watch"
+    },
+    "peerDependencies": {
+        "whatwg-url": "7.1.0"
+    },
+    "agentConfig": {
+        "pluginType": "elizaos:client:1.0.0",
+        "pluginParameters": {
+            "ANTHROPIC_API_KEY": {
+                "type": "string",
+                "optional": true,
+                "description": "Anthropic API key"
+            },
+            "TOGETHER_API_KEY": {
+                "type": "string",
+                "optional": true,
+                "description": "Together API key"
+            },
+            "HEURIST_API_KEY": {
+                "type": "string",
+                "optional": true,
+                "description": "Heurist API key"
+            },
+            "FAL_API_KEY": {
+                "type": "string",
+                "optional": true,
+                "description": "Fal API key"
+            },
+            "OPENAI_API_KEY": {
+                "type": "string",
+                "optional": true,
+                "description": "OpenAI API key"
+            },
+            "VENICE_API_KEY": {
+                "type": "string",
+                "optional": true,
+                "description": "Venice API key"
+            }
+        }
+    }
+}

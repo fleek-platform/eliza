@@ -12,5 +12,5 @@
         "transpileOnly": true,
         "esm": true
     },
-    "include": ["src"]
+    "include": ["src", "../plugins-test"]
 }

@@ -369,42 +369,105 @@ export async function loadCharacters(
     return loadedCharacters;
 }
 
-async function handlePluginImporting(plugins: string[]) {
-    if (plugins.length > 0) {
-        // this logging should happen before calling, so we can include important context
-        //elizaLogger.info("Plugins are: ", plugins);
-        const importedPlugins = await Promise.all(
-            plugins.map(async (plugin) => {
-                try {
-                    const importedPlugin:Plugin = await import(plugin);
-                    const functionName =
-                        plugin
-                            .replace("@elizaos/plugin-", "")
-                            .replace("@elizaos-plugins/plugin-", "")
-                            .replace(/-./g, (x) => x[1].toUpperCase()) +
-                        "Plugin"; // Assumes plugin function is camelCased with Plugin suffix
-                    if (!importedPlugin[functionName] && !importedPlugin.default) {
-                      elizaLogger.warn(plugin, 'does not have an default export or', functionName)
-                    }
-                    return {...(
-                        importedPlugin.default || importedPlugin[functionName]
-                    ), npmName: plugin };
-                } catch (importError) {
-                    console.error(
-                        `Failed to import plugin: ${plugin}`,
-                        importError
-                    );
-                    return false; // Return null for failed imports
-                }
-            })
-        )
-        // remove plugins that failed to load, so agent can try to start
-        return importedPlugins.filter(p => !!p);
-    } else {
-        return [];
+const plugins = {};
+async function loadPlugin(pluginNameOriginal: string) {
+    console.log('loadPlugin called with:', pluginNameOriginal);
+    
+    const pluginName = pluginNameOriginal.replace('@elizaos-plugins/', '');
+    console.log('Normalized plugin name:', pluginName);
+    elizaLogger.debug(`Attempting to load plugin: ${pluginName}`);
+    
+    // Try to load from dist directory
+    const possiblePaths = [
+        path.join(__dirname, '../..', 'plugins-test', pluginName, 'dist', 'index.js'),
+        path.join(__dirname, '../..', 'plugins-test', pluginName, 'dist', 'index.mjs'),
+        // Fallback paths
+        path.join(__dirname, '../..', 'plugins-test', pluginName, 'index.js'),
+        path.join(__dirname, '../..', 'plugins-test', pluginName),
+    ];
+    console.log('Possible plugin paths:', possiblePaths);
+
+    const nodeModulesPath = path.join(__dirname, '../..', 'plugins-test', pluginName, 'node_modules');
+
+   // Add the plugin's node_modules to the module resolution paths
+//    module.paths.push(nodeModulesPath);
+
+    let lastError = null;
+    
+    for (const tryPath of possiblePaths) {
+        console.log('Attempting to load from path:', tryPath);
+        try {
+            elizaLogger.debug(`Trying to load from: ${tryPath}`);
+            const fileUrl = new URL(tryPath, import.meta.url).href;
+            console.log('Constructed file URL:', fileUrl);
+            
+            const plugin = await import(fileUrl);
+            console.log('Successfully imported plugin:', plugin);
+            
+            plugins[pluginName] = plugin;
+            console.log('Stored plugin in plugins object');
+            
+            elizaLogger.debug(`Plugin ${pluginName} loaded dynamically from ${tryPath}`);
+            return plugin;
+        } catch (error) {
+            console.log('Failed import attempt:', error);
+            lastError = error;
+            elizaLogger.debug(`Failed to load from ${tryPath}: ${error.message}`);
+            continue;
+        }
     }
+
+    console.log('All load attempts failed. Last error:', lastError);
+    elizaLogger.error(`Failed to load plugin ${pluginName} from any path:`, lastError);
+    return false;
 }
 
+// Helper function to process plugins
+function processPlugin(plugin: string, importedPlugin: any) {
+    const functionName =
+        plugin
+            .replace("@elizaos/plugin-", "")
+            .replace("@elizaos-plugins/plugin-", "")
+            .replace(/-./g, (x) => x[1].toUpperCase()) + "Plugin";
+
+    if (!importedPlugin[functionName] && !importedPlugin.default) {
+        console.warn(`${plugin} does not have a default export or ${functionName}`);
+    }
+
+    return {
+        ...(importedPlugin.default || importedPlugin[functionName]),
+        npmName: plugin,
+    };
+}
+
+async function handlePluginImporting(pluginsList: string[]) {
+    if (!Array.isArray(pluginsList) || pluginsList.length === 0) {
+        return [];
+    }
+
+    const importedPlugins = await Promise.all(
+        pluginsList.map(async (plugin) => {
+            try {
+                // First attempt: Import as a standard module
+                const importedPlugin: Plugin = await import(plugin);
+                return processPlugin(plugin, importedPlugin);
+            } catch (importError) {
+                elizaLogger.warn(`Failed to import ${plugin} from node_modules, trying dynamic import...`);
+
+                // Fallback to dynamic loading from plugins-test directory
+                const dynamicallyLoadedPlugin = await loadPlugin(plugin);
+                if (dynamicallyLoadedPlugin) {
+                    return processPlugin(plugin, dynamicallyLoadedPlugin);
+                }
+                
+                elizaLogger.error(`Failed to load plugin ${plugin} through any method`);
+                return false;
+            }
+        })
+    );
+
+    return importedPlugins.filter(Boolean); // Remove failed imports
+}
 export function getTokenForProvider(
     provider: ModelProviderName,
     character: Character

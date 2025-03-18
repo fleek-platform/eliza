@@ -17,6 +17,7 @@ export default defineConfig({
         "agentkeepalive",
         "@anush008/tokenizers",
         "uuid",
+        "@elizaos/core",
         // Add other modules you want to externalize
     ],
 });
