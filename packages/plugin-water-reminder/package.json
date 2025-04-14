@@ -1,0 +1,29 @@
+{
+  "name": "@elizaos/plugin-water-reminder",
+  "version": "1.0.0",
+  "description": "Sends scheduled water reminders via SMS using Twilio",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@elizaos/core": "^0.25.9",
+    "node-cron": "^3.0.0",
+    "twilio": "^4.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/node-cron": "^3.0.0",
+    "typescript": "^5.0.0"
+  }
+}
