@@ -1,7 +1,8 @@
 -- Enable pgvector extension
 
 -- -- Drop existing tables and extensions
--- DROP EXTENSION IF EXISTS vector CASCADE;
+DROP EXTENSION IF EXISTS vector CASCADE;
+DROP EXTENSION IF EXISTS fuzzystrmatch CASCADE;
 -- DROP TABLE IF EXISTS relationships CASCADE;
 -- DROP TABLE IF EXISTS participants CASCADE;
 -- DROP TABLE IF EXISTS logs CASCADE;
